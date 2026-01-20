@@ -20,8 +20,7 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 exports.updateProfile = asyncHandler(async (req, res, next) => {
   const fieldsToUpdate = {
     name: req.body.name,
-    email: req.body.email,
-    gender: req.body.gender
+    email: req.body.email
   };
 
   const user = await User.findByIdAndUpdate(

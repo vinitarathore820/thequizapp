@@ -1,15 +1,15 @@
 {
   "info": {
-    "_postman_id": "quiz-app-collection",
-    "name": "Quiz App API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "QuizApp API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "your-postman-id"
   },
   "item": [
     {
-      "name": "Authentication",
+      "name": "Auth",
       "item": [
         {
-          "name": "Register User",
+          "name": "Register",
           "request": {
             "method": "POST",
             "header": [
@@ -20,7 +20,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"gender\": \"male\"\n}"
+              "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"test@example.com\",\n    \"password\": \"Test#1234\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/register",
@@ -30,7 +30,7 @@
           }
         },
         {
-          "name": "Login User",
+          "name": "Login",
           "request": {
             "method": "POST",
             "header": [
@@ -41,7 +41,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"Test#1234\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/login",
@@ -57,7 +57,8 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
               }
             ],
             "url": {
@@ -66,50 +67,12 @@
               "path": ["api", "v1", "auth", "me"]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Questions",
-      "item": [
-        {
-          "name": "Get Categories",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/questions/categories",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "questions", "categories"]
-            }
-          }
         },
         {
-          "name": "Get Question Count",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/questions/count/9",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "questions", "count", "9"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Quizzes",
-      "item": [
-        {
-          "name": "Start New Quiz",
+          "name": "Forgot Password",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -117,24 +80,20 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"category\": 9,\n    \"difficulty\": \"medium\",\n    \"amount\": 5\n}"
+              "raw": "{\n    \"email\": \"test@example.com\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/quizzes/start",
+              "raw": "{{base_url}}/api/v1/auth/forgotpassword",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "quizzes", "start"]
+              "path": ["api", "v1", "auth", "forgotpassword"]
             }
           }
         },
         {
-          "name": "Submit Quiz",
+          "name": "Reset Password",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -142,46 +101,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"answers\": [\"Paris\", \"Mars\", \"H2O\", \"4\", \"Blue Whale\"]\n}"
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"otp\": \"123456\",\n    \"newPassword\": \"NewPassword123!\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/quizzes/{{quiz_id}}/submit",
+              "raw": "{{base_url}}/api/v1/auth/resetpassword",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "quizzes", "{{quiz_id}}", "submit"]
-            }
-          }
-        },
-        {
-          "name": "Get Quiz History",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/quizzes",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "quizzes"]
-            }
-          }
-        },
-        {
-          "name": "Get Single Quiz",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{auth_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/quizzes/{{quiz_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "quizzes", "{{quiz_id}}"]
+              "path": ["api", "v1", "auth", "resetpassword"]
             }
           }
         }
@@ -191,21 +116,13 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:5000"
+      "value": "https://your-ngrok-url.ngrok-free.dev",
+      "type": "string"
     },
     {
       "key": "auth_token",
-      "value": ""
-    },
-    {
-      "key": "quiz_id",
-      "value": ""
+      "value": "your_jwt_token_here",
+      "type": "string"
     }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": {
-      "token": "{{auth_token}}"
-    }
-  }
+  ]
 }

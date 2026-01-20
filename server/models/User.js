@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -23,16 +24,19 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false
   },
-  gender: {
-    type: String,
-    enum: ['male', 'female', 'other'],
-    required: [true, 'Please specify gender']
-  },
   role: {
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
   },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: String,
+  emailVerificationExpire: Date,
   createdAt: {
     type: Date,
     default: Date.now
@@ -60,6 +64,40 @@ userSchema.methods.getSignedJwtToken = function() {
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE }
   );
+};
+
+// Generate 6-digit OTP for password reset
+userSchema.methods.generateResetOtp = function() {
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Hash OTP and set to resetPasswordToken field
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(otp)
+    .digest('hex');
+
+  // Set expire (2 minutes for testing)
+  this.resetPasswordExpire = Date.now() + 1 * 60 * 1000;
+
+  return otp;
+};
+
+// Generate email verification token
+userSchema.methods.getEmailVerificationToken = function() {
+  // Generate token
+  const verificationToken = crypto.randomBytes(20).toString('hex');
+
+  // Hash token and set to emailVerificationToken field
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+
+  // Set expire (24 hours)
+  this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
+
+  return verificationToken;
 };
 
 module.exports = mongoose.model('User', userSchema);
