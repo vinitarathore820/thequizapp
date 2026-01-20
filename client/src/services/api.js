@@ -1,15 +1,17 @@
 import axios from 'axios';
 
+export const API_URL = 'https://nonpantheistical-pseudohypertrophic-braelyn.ngrok-free.dev/api/v1';
+
 // Create axios instance with base URL and headers
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api/v1',
-  withCredentials: true,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
-// Add a request interceptor to include auth token
+// Request interceptor to add auth token to headers
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -23,15 +25,16 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor for error handling
+// Response interceptor to handle common errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle common errors here (e.g., 401 Unauthorized)
     if (error.response?.status === 401) {
-      // Handle unauthorized access (e.g., redirect to login)
+      // Handle unauthorized access
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

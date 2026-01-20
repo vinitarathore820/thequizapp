@@ -1,110 +1,158 @@
 // src/services/authService.js
-import axios from 'axios';
-import { API_URL } from './api';
+import api from './api';
+import { AUTH_ENDPOINTS } from './apiEndpoints';
 
-// Create axios instance with base URL and headers
-const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// Token management
+const TOKEN_KEY = 'token';
 
-// Add response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      const { data, status } = error.response;
-      let errorMessage = 'An error occurred';
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
 
-      if (data && data.message) {
-        errorMessage = data.message;
-      } else if (status === 401) {
-        errorMessage = 'Unauthorized access. Please login again.';
-      } else if (status === 400) {
-        errorMessage = 'Invalid request. Please check your input.';
-      } else if (status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      }
-
-      return Promise.reject(new Error(errorMessage));
-    } else if (error.request) {
-      // The request was made but no response was received
-      return Promise.reject(new Error('Network error. Please check your connection.'));
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      return Promise.reject(new Error('Request error. Please try again.'));
-    }
+export const setToken = (token) => {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
   }
-);
+};
 
-// Register a new user
+export const removeToken = () => {
+  localStorage.removeItem(TOKEN_KEY);
+};
+
+/**
+ * Register a new user
+ * @param {Object} userData - User registration data
+ * @returns {Promise<Object>} User data and token
+ */
 export const register = async (userData) => {
   try {
-    const response = await api.post('/auth/register', userData);
+    const response = await api.post(AUTH_ENDPOINTS.REGISTER, userData);
+    if (response.data.token) {
+      setToken(response.data.token);
+    }
     return response.data;
   } catch (error) {
-    throw error;
+    const errorMessage = error.response?.data?.error || error.message;
+    throw new Error(errorMessage || 'Registration failed');
   }
 };
 
-// Login user
+/**
+ * Login user
+ * @param {Object} credentials - User credentials
+ * @returns {Promise<Object>} User data and token
+ */
 export const login = async (credentials) => {
   try {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
-// Get current user
-export const getMe = async () => {
-  try {
-    const response = await api.get('/auth/me');
-    return response.data;
-  } catch (error) {
-    // If unauthorized, clear any existing token
-    if (error.message.includes('401')) {
-      localStorage.removeItem('token');
+    const response = await api.post(AUTH_ENDPOINTS.LOGIN, credentials);
+    if (response.data.token) {
+      setToken(response.data.token);
     }
-    throw error;
+    return response.data;
+  } catch (error) {
+    const errorMessage = error.response?.data?.error || error.message;
+    throw new Error(errorMessage || 'Login failed');
   }
 };
 
-// Logout user
-export const logout = () => {
-  // Clear token from localStorage
+/**
+ * Get current user data
+ * @returns {Promise<Object|null>} Current user data or null if not authenticated
+ */
+export const getCurrentUser = async () => {
+  try {
+    const response = await api.get(AUTH_ENDPOINTS.GET_CURRENT_USER);
+    console.log("response for get profile....", response)
+    return response.data.data;
+  } catch (error) {
+    // If token is invalid or expired, remove it
+    if (error.response?.status === 401) {
+      removeToken();
+    }
+    return null;
+  }
+};
+
+/**
+ * Logout user
+ * @returns {Promise<void>}
+ */
+export const logout = async () => {
+  try {
+    await api.post(AUTH_ENDPOINTS.LOGOUT);
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    removeToken();
+  }
+};
+
+/**
+ * Request password reset
+ * @param {string} email - User's email
+ * @returns {Promise<Object>} Response data
+ */
+export const forgotPassword = async (email) => {
+  try {
+    const response = await api.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email });
+    return response.data;
+  } catch (error) {
+    const errorMessage = error.response?.data?.error || error.message;
+    throw new Error(errorMessage || 'Password reset request failed');
+  }
+};
+
+/**
+ * Reset password with token
+ * @param {string} token - Password reset token
+ * @param {string} password - New password
+ * @returns {Promise<Object>} Response data
+ */
+export const resetPassword = async (token, password) => {
+  try {
+    const response = await api.post(AUTH_ENDPOINTS.RESET_PASSWORD, {
+      token,
+      password,
+    });
+    return response.data;
+  } catch (error) {
+    const errorMessage = error.response?.data?.error || error.message;
+    throw new Error(errorMessage || 'Password reset failed');
+  }
   localStorage.removeItem('token');
-  // Clear token from HTTP-only cookie by making a request to the backend
-  return api.post('/auth/logout');
+  // Optionally make a request to invalidate the token on the server
+  return api.post('/auth/logout').catch(() => {
+    // Even if logout fails on the server, we still want to clear the token
+  });
 };
 
-// Set auth token in the headers
-export const setAuthToken = (token) => {
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    localStorage.setItem('token', token);
-  } else {
-    delete api.defaults.headers.common['Authorization'];
-    localStorage.removeItem('token');
-  }
+/**
+ * Get auth token
+ * @returns {string|null} Auth token or null if not exists
+ */
+export const getAuthToken = () => {
+  return localStorage.getItem('token');
 };
 
-// Initialize auth token from localStorage if it exists
-const token = localStorage.getItem('token');
+/**
+ * Check if user is authenticated
+ * @returns {boolean} True if user is authenticated
+ */
+export const isAuthenticated = () => {
+  return !!getAuthToken();
+};
+
+// Set up auth token in headers if it exists
+const token = getAuthToken();
 if (token) {
-  setAuthToken(token);
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
 export default {
   register,
   login,
   logout,
-  getMe,
-  setAuthToken,
+  getCurrentUser,
+  getAuthToken,
+  isAuthenticated,
 };
