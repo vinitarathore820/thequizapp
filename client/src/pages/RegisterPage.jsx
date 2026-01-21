@@ -1,9 +1,9 @@
 // src/pages/RegisterPage.jsx
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { user as userIcon, mail, key, eye, eyeOff } from '../assets';
+import { API_URL } from '../services/api';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -18,12 +18,9 @@ const RegisterPage = () => {
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const { register, error: authError } = useAuth();
-  const { theme } = useTheme();
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/';
 
   // Validation rules
   const validateField = (name, value) => {
@@ -110,32 +107,41 @@ const RegisterPage = () => {
     if (!validateForm()) {
       return;
     }
-    
-    setIsSubmitting(true);
 
+    setIsSubmitting(true);
+    
     try {
-      const result = await register({
+      const response = await axios.post(`${API_URL}/auth/register`, {
         name: formData.name,
         email: formData.email,
-        password: formData.password,
+        password: formData.password
       });
+      
+      if (response.data.token) {
+        // Save token to localStorage
+        localStorage.setItem('token', response.data.token);
 
-      if (result.success) {
-        // Redirect to home page after successful registration
+        if (response.data.data) {
+          localStorage.setItem('user', JSON.stringify(response.data.data));
+        }
+        
+        // Set default axios authorization header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        
+        // Show success message
+        setAlertMessage('Registration successful! Redirecting...');
+        setShowAlert(true);
+        
         navigate('/', { replace: true });
-      } else {
-        setError(result.error || 'Registration failed');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
       console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.error || 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Get theme text color for icons
-  const iconColor = theme === 'dark' ? '#9CA3AF' : '#6B7280';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
@@ -145,27 +151,20 @@ const RegisterPage = () => {
             Create a new account
           </h2>
         </div>
-        {(error || authError) && (
-          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-500 p-4 rounded-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700 dark:text-red-300">{error || authError}</p>
-              </div>
-            </div>
+        {showAlert && (
+          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded flex justify-between items-center">
+            <span>{alertMessage}</span>
+            <button 
+              onClick={() => setShowAlert(false)}
+              className="text-green-700 hover:text-green-900 font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
           </div>
         )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -176,7 +175,7 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <img src={userIcon} alt="" className="w-4 h-4" style={{ stroke: iconColor }} />
+                  <img src={userIcon} alt="" className="w-4 h-4" />
                 </div>
                 <input
                   type="text"
@@ -202,7 +201,7 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <img src={mail} alt="" className="w-4 h-4" style={{ stroke: iconColor }} />
+                  <img src={mail} alt="" className="w-4 h-4" />
                 </div>
                 <input
                   type="email"
@@ -228,7 +227,9 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <img src={key} alt="" className="w-4 h-4" style={{ stroke: iconColor }} />
+                  <img src={key} alt="" className="w-4 h-4" 
+                  // style={{ stroke: iconColor }} 
+                  />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -253,7 +254,7 @@ const RegisterPage = () => {
                     src={showPassword ? eyeOff : eye} 
                     alt="" 
                     className="w-5 h-5" 
-                    style={{ stroke: iconColor }}
+                    // style={{ stroke: iconColor }}
                   />
                 </button>
               </div>
@@ -267,7 +268,7 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <img src={key} alt="" className="w-4 h-4" style={{ stroke: iconColor }} />
+                  <img src={key} alt="" className="w-4 h-4" />
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -292,7 +293,7 @@ const RegisterPage = () => {
                     src={showConfirmPassword ? eyeOff : eye} 
                     alt="" 
                     className="w-5 h-5" 
-                    style={{ stroke: iconColor }}
+                    // style={{ stroke: iconColor }}
                   />
                 </button>
               </div>

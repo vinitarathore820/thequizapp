@@ -1,14 +1,27 @@
 // src/components/layout/Layout.jsx
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { useEffect } from 'react';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
 const Layout = () => {
-  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
   const location = useLocation();
+  const navigate = useNavigate();
+
+  let user = null;
+  try {
+    const storedUser = localStorage.getItem('user');
+    user = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    user = null;
+  }
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">

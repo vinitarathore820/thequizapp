@@ -3,15 +3,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories, getQuestionCount } from '../services/quizService';
-import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [questionCount, setQuestionCount] = useState(10);
   const [availableCount, setAvailableCount] = useState(0);
-  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+
+  const isAuthenticated = !!localStorage.getItem('token');
+  let user = null;
+  try {
+    const storedUser = localStorage.getItem('user');
+    user = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    user = null;
+  }
 
   // Redirect to login if not authenticated
   useEffect(() => {

@@ -1,17 +1,31 @@
 // src/pages/ProfilePage.jsx
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getQuizStats } from '../services/quizService';
 
 const ProfilePage = () => {
-  const { user, logout } = useAuth();
-  const { theme } = useTheme();
-  
+  const navigate = useNavigate();
+
+  let user = null;
+  try {
+    const storedUser = localStorage.getItem('user');
+    user = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    user = null;
+  }
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login', { replace: true });
+  };
+
+  const userId = user?.id || user?._id;
+
   const { data: stats, isLoading } = useQuery(
-    ['userStats', user?._id],
-    () => getQuizStats(user?._id),
-    { enabled: !!user?._id }
+    ['userStats', userId],
+    () => getQuizStats(userId),
+    { enabled: !!userId }
   );
 
   if (!user) {
@@ -81,7 +95,7 @@ const ProfilePage = () => {
                       Member since
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                     </dd>
                   </div>
                 </dl>

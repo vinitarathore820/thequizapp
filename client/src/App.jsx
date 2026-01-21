@@ -1,6 +1,5 @@
 // src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -13,7 +12,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = !!localStorage.getItem('token');
 
   return (
     <Routes>
@@ -67,9 +66,7 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <AppContent />
   );
 }
 
