@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { getQuizHistory } from '../services/quizService';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import FullPageLoader from '../components/FullPageLoader';
 
 const HistoryPage = () => {
   const { theme } = useTheme();
@@ -17,12 +18,7 @@ const HistoryPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading your quiz history...</p>
-        </div>
-      </div>
+      <FullPageLoader message="Loading your quiz history..." className="bg-gray-50 dark:bg-gray-900" />
     );
   }
 

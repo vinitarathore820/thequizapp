@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useQuery } from '@tanstack/react-query';
 import { getQuizResult } from '../services/quizService';
+import FullPageLoader from '../components/FullPageLoader';
 
 const QuizResultPage = () => {
   const location = useLocation();
@@ -30,44 +31,13 @@ const QuizResultPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading your results...</p>
-        </div>
-      </div>
+      <FullPageLoader message="Loading your results..." className="bg-gray-50 dark:bg-gray-900" />
     );
   }
 
   if (error || !result) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-        <div className="max-w-md w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <div className="alert alert-error">
-            <div className="flex items-center">
-              <svg
-                className="h-5 w-5 text-red-500 mr-2"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Error loading results. Please try again.</span>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/')}
-            className="mt-4 w-full btn btn-primary"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
+      <FullPageLoader message="Error loading results. Please try again." className="bg-gray-50 dark:bg-gray-900" />
     );
   }
 
