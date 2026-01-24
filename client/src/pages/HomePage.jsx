@@ -1,25 +1,21 @@
 // src/pages/HomePage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
 import FullPageLoader from '../components/FullPageLoader';
 import TypeSelect from '../components/TypeSelect';
 import CategorySelect from '../components/CategorySelect';
 import DifficultySelect from '../components/DifficultySelect';
 
+const EMPTY_ARRAY = [];
+
 const HomePage = () => {
   const [selectedType, setSelectedType] = useState('');
-  const [types, setTypes] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
-  const [questionCount, setQuestionCount] = useState(10);
-  const [availableCount, setAvailableCount] = useState(0);
-  const [categoryCounts, setCategoryCounts] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-  const [isFetchingCount, setIsFetchingCount] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
   const isAuthenticated = !!localStorage.getItem('token');
@@ -38,149 +34,75 @@ const HomePage = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  useEffect(() => {
-    let isActive = true;
+  const {
+    data: typesData,
+    isLoading: isLoadingTypes,
+    error: typesError
+  } = useQuery({
+    queryKey: ['questionTypes'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/questions/types`);
+      const list = response?.data?.data;
+      console.log("list types...", list.length)
+      return Array.isArray(list) ? list : [];
+    },
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
+  });
 
-    if (!isAuthenticated) {
-      return () => {
-        isActive = false;
-      };
-    }
-
-    const fetchTypes = async () => {
-      setIsLoadingTypes(true);
-      try {
-        const response = await axios.get(`${API_URL}/questions/types`);
-        const list = response?.data?.data;
-        if (isActive) {
-          setTypes(Array.isArray(list) ? list : []);
-        }
-      } catch {
-        if (isActive) {
-          setTypes([]);
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingTypes(false);
-        }
-      }
-    };
-
-    fetchTypes();
-
-    return () => {
-      isActive = false;
-    };
-  }, [isAuthenticated]);
+  const types = Array.isArray(typesData) ? typesData : EMPTY_ARRAY;
 
   useEffect(() => {
     setSelectedCategory('');
-    setCategoryCounts(null);
-    setAvailableCount(0);
-    setQuestionCount(10);
   }, [selectedType]);
 
-  useEffect(() => {
-    let isActive = true;
+  const {
+    data: categoriesData,
+    isLoading: isLoadingCategories,
+    error: categoriesError
+  } = useQuery({
+    queryKey: ['questionCategories'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/questions/categories`);
+      const list = response?.data?.data;
+      console.log("list categories...", list.length)
+      return Array.isArray(list) ? list : [];
+    },
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
+  });
 
-    const fetchCategories = async () => {
-      if (!selectedType) {
-        setCategories([]);
-        return;
-      }
-
-      setIsLoadingCategories(true);
-      try {
-        const response = await axios.get(`${API_URL}/questions/categories`, {
-          params: { type: selectedType }
-        });
-        const list = response?.data?.data;
-        if (isActive) {
-          setCategories(Array.isArray(list) ? list : []);
-        }
-      } catch {
-        if (isActive) {
-          setCategories([]);
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingCategories(false);
-        }
-      }
-    };
-
-    fetchCategories();
-
-    return () => {
-      isActive = false;
-    };
-  }, [selectedType]);
+  const categories = Array.isArray(categoriesData) ? categoriesData : EMPTY_ARRAY;
 
   useEffect(() => {
-    let isActive = true;
+    const err = typesError || categoriesError;
+    if (!err) return;
+    setErrorMessage(err?.response?.data?.error || err?.message || 'Failed to load data');
+  }, [typesError, categoriesError]);
 
-    const fetchCount = async () => {
-      if (!selectedCategory) {
-        setCategoryCounts(null);
-        setAvailableCount(0);
-        setQuestionCount(10);
-        return;
-      }
-
-      setIsFetchingCount(true);
-      try {
-        const response = await axios.get(`${API_URL}/questions/count/${selectedCategory}`);
-        const count = response?.data?.data;
-        if (isActive) {
-          setCategoryCounts(count && typeof count === 'object' ? count : null);
-        }
-      } catch {
-        if (isActive) {
-          setCategoryCounts(null);
-          setAvailableCount(0);
-        }
-      } finally {
-        if (isActive) {
-          setIsFetchingCount(false);
-        }
-      }
-    };
-
-    fetchCount();
-
-    return () => {
-      isActive = false;
-    };
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    if (!selectedCategory || !categoryCounts) {
-      return;
-    }
-
-    const byDifficulty = {
-      easy: categoryCounts.total_easy_question_count,
-      medium: categoryCounts.total_medium_question_count,
-      hard: categoryCounts.total_hard_question_count,
-    };
-
-    const raw = byDifficulty[difficulty];
-    const safeCount = Number.isFinite(raw) ? raw : 0;
-    setAvailableCount(safeCount);
-    setQuestionCount((prev) => Math.min(prev || 1, safeCount || 10));
-  }, [categoryCounts, difficulty, selectedCategory]);
+  const visibleCategories = useMemo(() => {
+    if (!selectedType) return EMPTY_ARRAY;
+    return categories.filter((c) => String(c.typeId) === String(selectedType));
+  }, [categories, selectedType]);
 
   const handleStartQuiz = () => {
     if (!selectedType || !selectedCategory) {
       return;
     }
 
+    const selectedTypeObj = types.find((t) => String(t.id) === String(selectedType));
+
     navigate('/quiz/new', {
       state: {
-        quizType: selectedType,
-        category: selectedCategory,
+        quizType: selectedTypeObj?.name,
+        typeId: selectedType,
+        categoryId: selectedCategory,
         difficulty,
-        amount: questionCount,
+        amount: 10,
       },
     });
   };
@@ -194,18 +116,35 @@ const HomePage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
+
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Welcome{user?.name ? `, ${user.name}` : ''}!
+            Ready for a quick challenge{user?.name ? `, ${user.name}` : ''}?
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            Select a category and start your quiz now
+            Pick a topic, choose your difficulty, and start playing.
           </p>
         </div>
+
+        {errorMessage ? (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
+            <div className="flex items-start justify-between gap-3">
+              <div>{errorMessage}</div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage('')}
+                className="rounded px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-100 dark:text-red-200 dark:hover:bg-red-900/40"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="card bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="space-y-8">
             <div className="form-group">
+
               <div className="flex items-center justify-between">
                 <label htmlFor="type" className="label">
                   Type
@@ -229,11 +168,11 @@ const HomePage = () => {
                   Category
                 </label>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {`${categories.length} categories`}
+                  {`${visibleCategories.length} categories`}
                 </span>
               </div>
               <CategorySelect
-                categories={categories}
+                categories={visibleCategories}
                 value={selectedCategory}
                 onChange={(val) => setSelectedCategory(val)}
                 disabled={!selectedType || isLoadingCategories}
@@ -253,47 +192,18 @@ const HomePage = () => {
               />
             </div>
 
-            <div className="form-group">
-              <div className="flex items-center justify-between">
-                <label htmlFor="questionCount" className="label">
-                  Number of Questions
-                </label>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {isFetchingCount ? 'Checking...' : `Max: ${availableCount} available`}
-                </span>
-              </div>
-              <input
-                type="number"
-                id="questionCount"
-                min="1"
-                max={availableCount || 50}
-                value={questionCount}
-                onChange={(e) => setQuestionCount(Math.min(parseInt(e.target.value), availableCount || 50))}
-                className="input bg-blue-20 dark:bg-blue-400/20"
-                disabled={!selectedCategory || isFetchingCount || isLoadingCategories}
-              />
-            </div>
-
             <div className="pt-2">
               <button
                 onClick={handleStartQuiz}
-                disabled={!selectedType || !selectedCategory || isFetchingCount || isLoadingCategories}
+                disabled={!selectedType || !selectedCategory || isLoadingCategories}
                 className="btn btn-primary w-full"
               >
-                Start Quiz
+                Start playing
               </button>
             </div>
+
           </div>
         </div>
-
-        {/* <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <h3 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Quick Tips</h3>
-          <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-            <li>• Select a category to see available questions</li>
-            <li>• Questions are randomly selected from the Open Trivia Database</li>
-            <li>• You can choose between 1 and {availableCount || '50'} questions</li>
-          </ul>
-        </div> */}
       </div>
     </div>
   );

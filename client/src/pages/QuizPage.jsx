@@ -16,13 +16,13 @@ const QuizPage = () => {
   const [showResult, setShowResult] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds per question
 
-  const { category, difficulty, amount, quizType } = location.state || {};
+  const { categoryId, difficulty, amount, quizType, typeId } = location.state || {};
 
   // Fetch quiz questions
   const { data: questions = [], isLoading, error } = useQuery({
-    queryKey: ['quiz', quizType, category, difficulty, amount],
-    queryFn: () => getQuizQuestions({ quizType, category, difficulty, amount }),
-    enabled: !!category && !!difficulty && !!amount,
+    queryKey: ['quiz', quizType, categoryId, difficulty, amount],
+    queryFn: () => getQuizQuestions({ quizType, categoryId, difficulty, amount }),
+    enabled: !!categoryId && !!difficulty && !!amount,
   });
 
   // Timer effect
@@ -70,7 +70,7 @@ const QuizPage = () => {
       state: {
         score,
         total: questions.length,
-        category,
+        categoryId,
         difficulty,
       },
     });

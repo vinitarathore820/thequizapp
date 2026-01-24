@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { Listbox, Transition } from '@headlessui/react';
+import { down } from '../assets';
 
 const DifficultySelect = ({
   value,
@@ -20,7 +21,11 @@ const DifficultySelect = ({
       <div className="relative mt-1">
         <Listbox.Button className="select h-10 text-sm flex items-center justify-between bg-blue-20 dark:bg-blue-400/20" id="difficulty">
           <span className="block truncate">{selected ? selected.name : placeholder}</span>
-          <span className="pointer-events-none ml-2">▾</span>
+          <img
+            src={down}
+            alt=""
+            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
+          />
         </Listbox.Button>
 
         <Transition

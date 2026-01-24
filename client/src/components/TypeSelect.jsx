@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { Listbox, Transition } from '@headlessui/react';
+import { down } from '../assets';
 
 const TypeSelect = ({
   types,
@@ -8,14 +9,18 @@ const TypeSelect = ({
   disabled,
   placeholder = 'Select a type',
 }) => {
-  const selected = types.find((t) => String(t) === String(value)) || null;
+  const selected = types.find((t) => String(t.id) === String(value)) || null;
 
   return (
     <Listbox value={value} onChange={onChange} disabled={disabled}>
       <div className="relative mt-1">
         <Listbox.Button className="select h-10 text-sm flex items-center justify-between bg-blue-20 dark:bg-blue-400/20" id="type">
-          <span className="block truncate">{selected ? selected : placeholder}</span>
-          <span className="pointer-events-none ml-2">▾</span>
+          <span className="block truncate">{selected ? selected.name : placeholder}</span>
+          <img
+            src={down}
+            alt=""
+            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70"
+          />
         </Listbox.Button>
 
         <Transition
@@ -40,8 +45,8 @@ const TypeSelect = ({
 
             {types.map((type) => (
               <Listbox.Option
-                key={type}
-                value={type}
+                key={type.id}
+                value={String(type.id)}
                 className={({ active }) =>
                   `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
                     active
@@ -51,7 +56,7 @@ const TypeSelect = ({
                 }
               >
                 {({ selected: isSelected }) => (
-                  <span className={`block truncate ${isSelected ? 'font-medium' : 'font-normal'}`}>{type}</span>
+                  <span className={`block truncate ${isSelected ? 'font-medium' : 'font-normal'}`}>{type.name}</span>
                 )}
               </Listbox.Option>
             ))}

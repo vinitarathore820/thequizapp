@@ -5,5 +5,6 @@ import mail from './mail.svg';
 import user from './user.svg';
 import authMain from './auth_main.svg';
 import logs from './logs.svg';
+import down from './down.svg';
 
-export { eye, eyeOff, key, mail, user, authMain, logs };
+export { eye, eyeOff, key, mail, user, authMain, logs, down };

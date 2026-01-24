@@ -29,12 +29,20 @@ const quizSchema = new mongoose.Schema({
   categoryId: {
     type: Number
   },
+  categoryRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category'
+  },
   category: {
     type: String,
     required: true
   },
   quizType: {
     type: String
+  },
+  typeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuestionType'
   },
   difficulty: {
     type: String,
