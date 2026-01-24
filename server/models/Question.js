@@ -7,6 +7,24 @@ const questionSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Question cannot be more than 500 characters']
   },
+  typeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuestionType',
+    required: true
+  },
+  categoryId: {
+    type: Number,
+    required: [true, 'Please add a category id']
+  },
+  categoryRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: true
+  },
+  quizType: {
+    type: String,
+    required: [true, 'Please add a type']
+  },
   category: { 
     type: String, 
     required: [true, 'Please add a category']

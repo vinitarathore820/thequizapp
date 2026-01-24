@@ -83,7 +83,7 @@ process.on('uncaughtException', (error) => {
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', process.env.CLIENT_URL1, process.env.CLIENT_URL2].filter(Boolean);
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', process.env.CLIENT_URL1].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -209,7 +209,7 @@ process.on('unhandledRejection', (err) => {
 // Start the server
 let server;
 connectDB().then(() => {
-  const PORT = process.env.PORT || 5173;
+  const PORT = process.env.PORT || 5001;
   server = app.listen(PORT, () => {
     logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });

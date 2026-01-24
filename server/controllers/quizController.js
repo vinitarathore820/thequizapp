@@ -1,24 +1,57 @@
 // controllers/quizController.js
-const TriviaService = require('../services/triviaService');
 const Quiz = require('../models/Quiz');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/async');
+const Category = require('../models/Category');
+const Question = require('../models/Question');
+const QuestionType = require('../models/QuestionType');
 
 // @desc    Start a new quiz
 // @route   POST /api/v1/quizzes/start
 // @access  Private
 exports.startQuiz = asyncHandler(async (req, res, next) => {
-  const { category, difficulty = 'medium', amount = 10 } = req.body;
+  const { category, difficulty = 'medium', amount = 10, quizType } = req.body;
   
   if (amount > 50) {
     throw new ErrorResponse('Maximum 50 questions allowed per request', 400);
   }
 
-  const questions = await TriviaService.getQuestions({
-    amount,
-    category,
-    difficulty
-  });
+  const categoryId = Number(category);
+  if (!Number.isFinite(categoryId)) {
+    throw new ErrorResponse('Invalid category id', 400);
+  }
+
+  const categoryDoc = await Category.findOne({ id: categoryId });
+  if (!categoryDoc) {
+    throw new ErrorResponse('Category not found', 404);
+  }
+
+  if (quizType && quizType !== categoryDoc.type) {
+    throw new ErrorResponse('Category does not belong to the selected type', 400);
+  }
+
+  const match = { categoryId };
+  if (difficulty && difficulty !== 'any') match.difficulty = difficulty;
+
+  const available = await Question.countDocuments(match);
+  if (available < Number(amount)) {
+    throw new ErrorResponse('No questions found for the specified criteria', 404);
+  }
+
+  const questions = await Question.aggregate([
+    { $match: match },
+    { $sample: { size: Number(amount) } },
+    {
+      $project: {
+        question: 1,
+        category: 1,
+        type: 1,
+        difficulty: 1,
+        correct_answer: 1,
+        incorrect_answers: 1
+      }
+    }
+  ]);
 
   const transformedQuestions = questions.map(q => ({
     question: q.question,
@@ -33,7 +66,9 @@ exports.startQuiz = asyncHandler(async (req, res, next) => {
     user: req.user.id,
     questions: transformedQuestions,
     total_questions: questions.length,
-    category,
+    categoryId,
+    category: categoryDoc.name,
+    quizType: categoryDoc.type,
     difficulty
   });
 

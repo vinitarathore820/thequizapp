@@ -4,17 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../services/api';
 import FullPageLoader from '../components/FullPageLoader';
+import TypeSelect from '../components/TypeSelect';
 import CategorySelect from '../components/CategorySelect';
 import DifficultySelect from '../components/DifficultySelect';
 
 const HomePage = () => {
+  const [selectedType, setSelectedType] = useState('');
+  const [types, setTypes] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [questionCount, setQuestionCount] = useState(10);
   const [availableCount, setAvailableCount] = useState(0);
   const [categoryCounts, setCategoryCounts] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isFetchingCount, setIsFetchingCount] = useState(false);
   const navigate = useNavigate();
 
@@ -43,10 +47,53 @@ const HomePage = () => {
       };
     }
 
+    const fetchTypes = async () => {
+      setIsLoadingTypes(true);
+      try {
+        const response = await axios.get(`${API_URL}/questions/types`);
+        const list = response?.data?.data;
+        if (isActive) {
+          setTypes(Array.isArray(list) ? list : []);
+        }
+      } catch {
+        if (isActive) {
+          setTypes([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingTypes(false);
+        }
+      }
+    };
+
+    fetchTypes();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    setSelectedCategory('');
+    setCategoryCounts(null);
+    setAvailableCount(0);
+    setQuestionCount(10);
+  }, [selectedType]);
+
+  useEffect(() => {
+    let isActive = true;
+
     const fetchCategories = async () => {
+      if (!selectedType) {
+        setCategories([]);
+        return;
+      }
+
       setIsLoadingCategories(true);
       try {
-        const response = await axios.get(`${API_URL}/questions/categories`);
+        const response = await axios.get(`${API_URL}/questions/categories`, {
+          params: { type: selectedType }
+        });
         const list = response?.data?.data;
         if (isActive) {
           setCategories(Array.isArray(list) ? list : []);
@@ -67,7 +114,7 @@ const HomePage = () => {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated]);
+  }, [selectedType]);
 
   useEffect(() => {
     let isActive = true;
@@ -124,12 +171,13 @@ const HomePage = () => {
   }, [categoryCounts, difficulty, selectedCategory]);
 
   const handleStartQuiz = () => {
-    if (!selectedCategory) {
+    if (!selectedType || !selectedCategory) {
       return;
     }
 
     navigate('/quiz/new', {
       state: {
+        quizType: selectedType,
         category: selectedCategory,
         difficulty,
         amount: questionCount,
@@ -137,7 +185,7 @@ const HomePage = () => {
     });
   };
 
-  if (!isAuthenticated || isLoadingCategories) {
+  if (!isAuthenticated || isLoadingTypes) {
     return (
       <FullPageLoader />
     );
@@ -159,6 +207,24 @@ const HomePage = () => {
           <div className="space-y-8">
             <div className="form-group">
               <div className="flex items-center justify-between">
+                <label htmlFor="type" className="label">
+                  Type
+                </label>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {`${types.length} types`}
+                </span>
+              </div>
+              <TypeSelect
+                types={types}
+                value={selectedType}
+                onChange={(val) => setSelectedType(val)}
+                disabled={isLoadingTypes}
+                placeholder="Select a type"
+              />
+            </div>
+
+            <div className="form-group">
+              <div className="flex items-center justify-between">
                 <label htmlFor="category" className="label">
                   Category
                 </label>
@@ -170,7 +236,7 @@ const HomePage = () => {
                 categories={categories}
                 value={selectedCategory}
                 onChange={(val) => setSelectedCategory(val)}
-                disabled={isLoadingCategories}
+                disabled={!selectedType || isLoadingCategories}
                 placeholder="Select a category"
               />
             </div>
@@ -182,7 +248,7 @@ const HomePage = () => {
               <DifficultySelect
                 value={difficulty}
                 onChange={(val) => setDifficulty(val)}
-                disabled={isLoadingCategories}
+                disabled={!selectedCategory || isLoadingCategories}
                 placeholder="Select difficulty"
               />
             </div>
@@ -211,7 +277,7 @@ const HomePage = () => {
             <div className="pt-2">
               <button
                 onClick={handleStartQuiz}
-                disabled={!selectedCategory || isFetchingCount || isLoadingCategories}
+                disabled={!selectedType || !selectedCategory || isFetchingCount || isLoadingCategories}
                 className="btn btn-primary w-full"
               >
                 Start Quiz

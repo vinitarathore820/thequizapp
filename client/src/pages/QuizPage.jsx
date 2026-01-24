@@ -16,12 +16,12 @@ const QuizPage = () => {
   const [showResult, setShowResult] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds per question
 
-  const { category, difficulty, amount } = location.state || {};
+  const { category, difficulty, amount, quizType } = location.state || {};
 
   // Fetch quiz questions
   const { data: questions = [], isLoading, error } = useQuery({
-    queryKey: ['quiz', category, difficulty, amount],
-    queryFn: () => getQuizQuestions({ category, difficulty, amount }),
+    queryKey: ['quiz', quizType, category, difficulty, amount],
+    queryFn: () => getQuizQuestions({ quizType, category, difficulty, amount }),
     enabled: !!category && !!difficulty && !!amount,
   });
 

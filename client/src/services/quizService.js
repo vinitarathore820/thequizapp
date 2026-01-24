@@ -37,16 +37,17 @@ export const getQuestionCount = async (categoryId) => {
   return response.data;
 };
 
-export const getQuizQuestions = async (category, difficulty, limit = 10) => {
+export const getQuizQuestions = async ({ category, categoryId, difficulty, amount = 10, quizType } = {}) => {
   try {
     const response = await api.get('/questions', {
       params: {
-        category,
+        categoryId: categoryId ?? category,
         difficulty,
-        limit,
+        amount,
+        quizType
       },
     });
-    return response.data;
+    return response.data?.data || [];
   } catch (error) {
     console.error('Error fetching quiz questions:', error);
     throw error;
