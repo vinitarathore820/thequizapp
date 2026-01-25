@@ -84,15 +84,25 @@ app.use(helmet());
 
 // CORS configuration
 const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', process.env.CLIENT_URL1].filter(Boolean);
+const isDev = process.env.NODE_ENV !== 'production';
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+
+    // In development, allow any localhost/127.0.0.1 port (covers Vite preview: 4173)
+    if (
+      isDev &&
+      (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))
+    ) {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+      // Don't throw a server error: just deny CORS for that origin
+      return callback(null, false);
     }
     return callback(null, true);
   },
