@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // export const API_URL = 'https://nonpantheistical-pseudohypertrophic-braelyn.ngrok-free.dev/api/v1';
-export const API_URL = 'http://localhost:5001/api/v1';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1';
 
 // Create axios instance with base URL and headers
 const api = axios.create({
