@@ -1,60 +1,69 @@
 // src/pages/QuizResultPage.jsx
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
-import { useQuery } from '@tanstack/react-query';
-import { getQuizResult } from '../services/quizService';
-import FullPageLoader from '../components/FullPageLoader';
+import { useEffect } from 'react';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import Lottie from 'lottie-react';
+import { failed, failed1, passed, passed1 } from '../assets';
 
 const QuizResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  const { score, total, category, difficulty } = location.state || {};
+  const navigationType = useNavigationType();
+  const state = location.state || {};
 
-  // If we have the score in location state, use that
-  // Otherwise, fetch the result from the server if we have a quizId
-  const { data: result, isLoading, error } = useQuery({
-    queryKey: ['quizResult', location.state?.quizId],
-    queryFn: () => getQuizResult(location.state?.quizId),
-    enabled: !!location.state?.quizId,
-    initialData: location.state?.score !== undefined ? {
-      score: location.state.score,
-      total: location.state.total,
-      category: location.state.category,
-      difficulty: location.state.difficulty,
-      correctAnswers: location.state.correctAnswers || 0,
-      incorrectAnswers: location.state.incorrectAnswers || 0,
-      skipped: location.state.skipped || 0,
-      timeSpent: location.state.timeSpent || '00:00',
-    } : undefined,
-  });
+  const result = {
+    score: Number.isFinite(state.score) ? state.score : 0,
+    total: Number.isFinite(state.total) ? state.total : 0,
+    category: state.category || 'General Knowledge',
+    difficulty: state.difficulty || 'medium',
+    typeId: state.typeId,
+    categoryId: state.categoryId,
+    quizType: state.quizType,
+    correctAnswers: Number.isFinite(state.correctAnswers) ? state.correctAnswers : (Number.isFinite(state.score) ? state.score : 0),
+    incorrectAnswers: Number.isFinite(state.incorrectAnswers) ? state.incorrectAnswers : 0,
+    skipped: Number.isFinite(state.skipped) ? state.skipped : 0,
+    pointsEarned: Number.isFinite(state.pointsEarned) ? state.pointsEarned : undefined,
+    status: state.status
+  };
 
-  if (isLoading) {
-    return (
-      <FullPageLoader message="Loading your results..." className="bg-gray-50 dark:bg-gray-900" />
-    );
-  }
-
-  if (error || !result) {
-    return (
-      <FullPageLoader message="Error loading results. Please try again." className="bg-gray-50 dark:bg-gray-900" />
-    );
-  }
-
-  const percentage = Math.round((result.score / result.total) * 100);
-  const isPerfectScore = result.score === result.total;
+  const percentage = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
+  const isPerfectScore = result.total > 0 && result.score === result.total;
   const isPassingScore = percentage >= 70;
+  const animationData = isPassingScore ? passed1 : failed1;
+
+  useEffect(() => {
+    if (navigationType === 'POP') {
+      navigate('/', { replace: true });
+    }
+  }, [navigationType, navigate]);
+
+  if (navigationType === 'POP') return null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            {isPerfectScore ? 'Perfect Score! 🎉' : isPassingScore ? 'Quiz Complete! 🎯' : 'Quiz Results'}
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            You scored {result.score} out of {result.total} ({percentage}%)
-          </p>
+        <div className="card p-6 sm:p-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
+                {isPerfectScore ? 'Perfect Score!' : isPassingScore ? 'Quiz Passed' : 'Quiz Failed'}
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                You scored <span className="font-semibold text-gray-900 dark:text-white">{result.score}</span>
+                {' '}out of <span className="font-semibold text-gray-900 dark:text-white">{result.total}</span>
+                {' '}({percentage}%).
+              </p>
+              {typeof result.pointsEarned === 'number' ? (
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  Points earned: <span className="font-semibold text-primary-600 dark:text-primary-400">{result.pointsEarned}</span>
+                </p>
+              ) : null}
+            </div>
+            <div className="flex justify-center md:justify-end">
+              <div className="w-56 sm:w-64">
+                <Lottie animationData={animationData} loop autoplay />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -160,12 +169,6 @@ const QuizResultPage = () => {
                 <span className="font-medium">Total Questions:</span>{' '}
                 <span className="text-gray-800 dark:text-gray-200">{result.total}</span>
               </p>
-              {result.timeSpent && (
-                <p className="text-gray-600 dark:text-gray-300">
-                  <span className="font-medium">Time Spent:</span>{' '}
-                  <span className="text-gray-800 dark:text-gray-200">{result.timeSpent}</span>
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -174,36 +177,15 @@ const QuizResultPage = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={() => navigate('/')}
-            className="btn btn-primary flex-1 sm:flex-none sm:w-auto"
+            className="btn btn-primary w-full sm:w-1/2"
           >
-            Back to Home
+            Home
           </button>
           <button
-            onClick={() => navigate('/quiz/new', { state: { category, difficulty } })}
-            className="btn btn-outline flex-1 sm:flex-none sm:w-auto"
+            onClick={() => navigate('/quiz/new', { state: { typeId: result.typeId, categoryId: result.categoryId, quizType: result.quizType, category: result.category, difficulty: result.difficulty } })}
+            className="w-full sm:w-1/2 inline-flex items-center justify-center px-5 py-3 rounded-lg border border-primary-600 text-primary-600 bg-transparent hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            Try Again
-          </button>
-          <button
-            onClick={() => {
-              // Share functionality can be implemented here
-              if (navigator.share) {
-                navigator.share({
-                  title: 'My Quiz Results',
-                  text: `I scored ${result.score} out of ${result.total} (${percentage}%) on the ${result.category} quiz! Can you beat my score?`,
-                  url: window.location.href,
-                }).catch(console.error);
-              } else {
-                // Fallback for browsers that don't support Web Share API
-                navigator.clipboard.writeText(
-                  `I scored ${result.score}/${result.total} (${percentage}%) on the ${result.category} quiz! Can you beat my score?`
-                );
-                alert('Results copied to clipboard!');
-              }
-            }}
-            className="btn btn-outline flex-1 sm:flex-none sm:w-auto"
-          >
-            Share Results
+            Retry
           </button>
         </div>
       </div>

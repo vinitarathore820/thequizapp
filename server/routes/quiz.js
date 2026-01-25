@@ -17,6 +17,8 @@ router.use(protect);
 // Quiz routes
 router.post('/start', startQuiz);
 router.post('/:id/submit', submitQuiz);
+router.get('/history', getUserQuizzes);
+router.get('/result/:id', getQuiz);
 router.get('/', getUserQuizzes);
 router.get('/:id', getQuiz);
 

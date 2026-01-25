@@ -1,37 +1,117 @@
 // src/pages/HistoryPage.jsx
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { getQuizHistory } from '../services/quizService';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { useTheme } from '../context/ThemeContext';
 import FullPageLoader from '../components/FullPageLoader';
+import api from '../services/api';
 
 const HistoryPage = () => {
-  const { theme } = useTheme();
-  const { data: quizzes = [], isLoading, error } = useQuery(
-    ['quizHistory'],
-    getQuizHistory,
-    {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    }
-  );
+  const navigate = useNavigate();
 
-  if (isLoading) {
+  const [quizzes, setQuizzes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isOpening, setIsOpening] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const list = useMemo(() => {
+    if (Array.isArray(quizzes)) return quizzes;
+    return [];
+  }, [quizzes]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage('');
+        const response = await api.get('/quizzes/history');
+        const payload = response?.data;
+        const data = Array.isArray(payload?.data) ? payload.data : [];
+        if (mounted) setQuizzes(data);
+      } catch (err) {
+        const msg = err?.response?.data?.error || err?.message || 'Failed to load quiz history';
+        if (mounted) setErrorMessage(msg);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const openResult = async (quizId) => {
+    if (!quizId || isOpening) return;
+    setIsOpening(true);
+    try {
+      const response = await api.get(`/quizzes/result/${quizId}`);
+      const quiz = response?.data?.data;
+      if (!quiz) {
+        throw new Error('Result not found');
+      }
+
+      const total = Number.isFinite(quiz.total_questions) ? quiz.total_questions : 0;
+      const score = Number.isFinite(quiz.score) ? quiz.score : 0;
+      const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+
+      let correctAnswers = 0;
+      let incorrectAnswers = 0;
+      let skipped = 0;
+      for (const q of questions) {
+        if (q?.is_correct === true) correctAnswers += 1;
+        else if (q?.is_correct === false) incorrectAnswers += 1;
+        else skipped += 1;
+      }
+
+      const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+
+      navigate('/quiz/result', {
+        state: {
+          quizId: quiz._id,
+          score,
+          total,
+          percentage,
+          correctAnswers,
+          incorrectAnswers,
+          skipped,
+          status: quiz.status,
+          pointsEarned: quiz.pointsEarned,
+          category: quiz.category,
+          difficulty: quiz.difficulty,
+          typeId: quiz.typeId,
+          categoryId: quiz.categoryRef || quiz.categoryId,
+          quizType: quiz.quizType
+        }
+      });
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to open quiz result';
+      setErrorMessage(msg);
+    } finally {
+      setIsOpening(false);
+    }
+  };
+
+  if (isLoading || isOpening) {
     return (
-      <FullPageLoader message="Loading your quiz history..." className="bg-gray-50 dark:bg-gray-900" />
+      <FullPageLoader
+        message={isOpening ? 'Opening result...' : 'Loading your quiz history...'}
+        className="bg-gray-50 dark:bg-gray-900"
+      />
     );
   }
 
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
         <div className="max-w-md w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <div className="alert alert-error">
             <div className="flex items-center">
+
               <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              <span>Error loading your quiz history. Please try again.</span>
+              <span>{errorMessage}</span>
             </div>
           </div>
           <button
@@ -57,15 +137,15 @@ const HistoryPage = () => {
           </div>
         </div>
 
-        {quizzes.length === 0 ? (
+        {list.length === 0 ? (
           <div className="mt-8 bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:p-6 text-center">
+
               <svg
                 className="mx-auto h-12 w-12 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -79,8 +159,9 @@ const HistoryPage = () => {
                 Take your first quiz to see your history here.
               </p>
               <div className="mt-6">
-                <Link
-                  to="/"
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 >
                   <svg
@@ -97,88 +178,78 @@ const HistoryPage = () => {
                     />
                   </svg>
                   Start Quiz
-                </Link>
+                </button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="mt-8 flex flex-col">
-            <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-              <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-6"
-                        >
-                          Quiz
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white"
-                        >
-                          Score
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white"
-                        >
-                          Date
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white"
-                        >
-                          Difficulty
-                        </th>
-                        <th
-                          scope="col"
-                          className="relative py-3.5 pl-3 pr-4 sm:pr-6"
-                        >
-                          <span className="sr-only">View</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                      {quizzes.map((quiz) => (
-                        <tr key={quiz._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-white sm:pl-6">
-                            {quiz.category}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                quiz.score / quiz.totalQuestions >= 0.7
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                              }`}
-                            >
-                              {quiz.score}/{quiz.totalQuestions}
-                            </span>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">
-                            {format(new Date(quiz.completedAt), 'MMM d, yyyy')}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300 capitalize">
-                            {quiz.difficulty}
-                          </td>
-                          <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                            <Link
-                              to={`/quiz/${quiz._id}/result`}
-                              className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
-                            >
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+          <div className="mt-8 space-y-4">
+            {list.map((quiz) => {
+              const total = Number.isFinite(quiz.totalQuestions) ? quiz.totalQuestions : (Number.isFinite(quiz.total_questions) ? quiz.total_questions : 0);
+              const score = Number.isFinite(quiz.score) ? quiz.score : 0;
+              const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+              const isPassing = percentage >= 70;
+              const completedAt = quiz.completedAt ? new Date(quiz.completedAt) : null;
+
+              return (
+                <button
+                  key={quiz._id}
+                  type="button"
+                  onClick={() => openResult(quiz._id)}
+                  className="w-full text-left card p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-500 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {quiz.category || 'Quiz'}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {completedAt ? format(completedAt, 'MMM d, yyyy • hh:mm a') : 'In progress'}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          isPassing
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}
+                      >
+                        {percentage}%
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 capitalize">
+                        {quiz.difficulty || 'medium'}
+                      </span>
+                      {typeof quiz.pointsEarned === 'number' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300">
+                          +{quiz.pointsEarned} pts
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Score</div>
+                      <div className="text-base font-semibold text-gray-900 dark:text-white">{score}/{total}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Status</div>
+                      <div className="text-base font-semibold text-gray-900 dark:text-white capitalize">{quiz.status || 'completed'}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Type</div>
+                      <div className="text-base font-semibold text-gray-900 dark:text-white">{quiz.quizType || '—'}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Tap to view</div>
+                      <div className="text-base font-semibold text-primary-600 dark:text-primary-400">Result</div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getProfile,
+  getLeaderboard,
   updateProfile,
   updatePassword
 } = require('../controllers/userController');
@@ -16,6 +17,8 @@ router
   .route('/me')
   .get(getProfile)
   .put(updateProfile);
+
+router.get('/leaderboard', getLeaderboard);
 
 router.put('/update-password', updatePassword);
 

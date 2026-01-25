@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false
   },
+  points: {
+    type: Number,
+    default: 0
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],

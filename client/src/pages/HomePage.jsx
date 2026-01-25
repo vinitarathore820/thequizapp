@@ -14,7 +14,7 @@ const EMPTY_ARRAY = [];
 const HomePage = () => {
   const [selectedType, setSelectedType] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [difficulty, setDifficulty] = useState('medium');
+  const [difficulty, setDifficulty] = useState('easy');
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
@@ -119,7 +119,7 @@ const HomePage = () => {
 
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Ready for a quick challenge{user?.name ? `, ${user.name}` : ''}?
+            Ready for a quick challenge 🚀<br/>{user?.name ? `${user.name}` : ''}?
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
             Pick a topic, choose your difficulty, and start playing.

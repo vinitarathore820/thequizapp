@@ -56,6 +56,38 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
   sendTokenResponse(user, 200, res);
 });
 
+exports.getLeaderboard = asyncHandler(async (req, res, next) => {
+  const users = await User.find({})
+    .sort({ points: -1, name: 1, _id: 1 })
+    .select('name points')
+    .lean();
+
+  const currentUserId = String(req.user.id);
+  let currentUserRank = null;
+
+  const leaderboard = users.map((u, index) => {
+    const rank = index + 1;
+    if (String(u._id) === currentUserId) {
+      currentUserRank = rank;
+    }
+    return {
+      rank,
+      _id: u._id,
+      name: u.name,
+      points: u.points ?? 0
+    };
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      leaderboard,
+      currentUserId,
+      currentUserRank
+    }
+  });
+});
+
 // Get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
   // Create token

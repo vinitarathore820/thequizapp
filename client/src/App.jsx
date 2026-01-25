@@ -1,4 +1,5 @@
 // src/App.jsx
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
@@ -8,11 +9,23 @@ import QuizPage from './pages/QuizPage';
 import QuizResultPage from './pages/QuizResultPage';
 import HistoryPage from './pages/HistoryPage';
 import ProfilePage from './pages/ProfilePage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function AppContent() {
-  const isAuthenticated = !!localStorage.getItem('token');
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+  useEffect(() => {
+    const syncAuth = () => setIsAuthenticated(!!localStorage.getItem('token'));
+
+    window.addEventListener('storage', syncAuth);
+    window.addEventListener('auth:changed', syncAuth);
+    return () => {
+      window.removeEventListener('storage', syncAuth);
+      window.removeEventListener('auth:changed', syncAuth);
+    };
+  }, []);
 
   return (
     <Routes>
@@ -25,6 +38,22 @@ function AppContent() {
         <Route
           path="register"
           element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />}
+        />
+        <Route
+          path="quiz/new"
+          element={
+            <ProtectedRoute>
+              <QuizPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="quiz/result"
+          element={
+            <ProtectedRoute>
+              <QuizResultPage />
+            </ProtectedRoute>
+          }
         />
         <Route
           path="quiz/:id"
@@ -47,6 +76,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="leaderboard"
+          element={
+            <ProtectedRoute>
+              <LeaderboardPage />
             </ProtectedRoute>
           }
         />

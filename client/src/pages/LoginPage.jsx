@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { mail, key, eye, eyeOff } from '../assets';
+import { mail, key, eye, eyeOff, quizzzyLogo } from '../assets';
 import { API_URL } from '../services/api';
 
 const LoginPage = () => {
@@ -106,6 +106,8 @@ const LoginPage = () => {
         
         // Set default axios authorization header
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
+        window.dispatchEvent(new Event('auth:changed'));
         
         // Show success message
         setAlertMessage('Login successful!');
@@ -126,6 +128,7 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200">
       <div className="max-w-md w-full space-y-8">
         <div>
+          <img src={quizzzyLogo} alt="Quizzzy" className="mx-auto h-24 w-24" />
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Sign in to your account
           </h2>

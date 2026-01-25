@@ -111,6 +111,99 @@
           }
         }
       ]
+    },
+    {
+      "name": "Quizzes",
+      "item": [
+        {
+          "name": "Start Quiz (15 questions, 30 min)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"typeId\": \"{{type_id}}\",\n  \"categoryId\": \"{{category_id}}\",\n  \"difficulty\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/quizzes/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "quizzes", "start"]
+            }
+          }
+        },
+        {
+          "name": "Submit Quiz (by questionId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"questionId\": \"{{question_id}}\", \"answer\": \"{{answer_value}}\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/quizzes/{{quiz_id}}/submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "quizzes", "{{quiz_id}}", "submit"]
+            }
+          }
+        },
+        {
+          "name": "Get Quiz History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/quizzes/history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "quizzes", "history"]
+            }
+          }
+        },
+        {
+          "name": "Get Quiz Result",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/quizzes/result/{{quiz_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "quizzes", "result", "{{quiz_id}}"]
+            }
+          }
+        }
+      ]
     }
   ],
   "variable": [
@@ -122,6 +215,31 @@
     {
       "key": "auth_token",
       "value": "your_jwt_token_here",
+      "type": "string"
+    },
+    {
+      "key": "quiz_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "type_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "question_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "answer_value",
+      "value": "",
       "type": "string"
     }
   ]
